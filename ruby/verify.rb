@@ -22,20 +22,24 @@ def run_cmd cmd, regex, errmsg
   }
 end
 
-def check_updated_packages
+def count_output cmd, errmsg
   i = 0
-  %x{find /var/lib/apt/lists/ -mtime -14}.each { |line|
+  %x{#{cmd}}.each { |line|
     i = i+1
   }
-  if (i == 0)
+  return i
+end
+
+def check_updated_packages
+  a = count_output "find /var/lib/apt/lists/ -mtime -14", "apt-repo-sources not updated last two weeks."
+  b = count_output "apt-show-versions -u", "apt-repo-sources not updated last two weeks."
+
+  if (a == 0)
     $stderr.puts "apt-repo-sources not updated last two weeks."
     exit 2
   end
-  i = 0
-  %x{apt-show-versions -u}.each { |line|
-    i = i+1
-  }
-  if (i > 15)
+
+  if (b > 15)
     $stderr.puts "More than 15 packages needs to be updated."
     exit 2
   end
