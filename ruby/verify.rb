@@ -5,37 +5,18 @@ def check_os
   end
 end
 
-def check_user
-  File.open("/etc/shadow", "r") { |file|
-    unless file.read =~ /^mnouser.*/
-      $stderr.puts "mnouser not found."
-      exit 2
+def grep_file filename, regex, errmsg
+  File.open(filename, "r") { |file|
+    unless file.read =~ regex
+      $stderr.puts errmsg
     end
   }
 end
 
-def check_sudo
-  File.open("/etc/sudoers", "r") { |file|
-    unless file.read =~ /^mnouser ALL=NOPASSWD: ALL.*/
-      $stderr.puts "mnouser not found in sudoers."
-      exit 2
-    end
-  }
-end
-
-def check_dhcpd
-  %x{ps ax}.each { |proc|
-    if proc =~ /.*dhcpd.*/
-      $stderr.puts "DHCP Daemon running."
-      exit 2
-    end
-  }
-end
-
-def check_promiscuous
-  %x{dmesg}.each { |line|
-    if line =~ /.*entered promiscuous mode.*/
-      $stderr.puts "NIC running in promiscuous mode."
+def run_cmd cmd, regex, errmsg
+  %x{#{cmd}}.each { |output|
+    if output =~ regex
+      $stderr.puts errmsg
       exit 2
     end
   }
@@ -62,10 +43,10 @@ end
 
 loop do
   check_os
-  check_user
-  check_sudo
-  check_dhcpd
-  check_promiscuous
+  grep_file "/etc/shadow", /^mnouser.*/, "mnouser not found"
+  grep_file "/etc/sudoers", /^mnouser ALL=NOPASSWD: ALL.*/, "mnouser not found in sudoers"
+  run_cmd "ps ax", /.*dhcpd.*/, "DHCP Daemon running."
+  run_cmd "dmesg", /.*entered promiscuous mode.*/, "NIC running in promiscuous mode."
   check_updated_packages
   sleep 300
 end
