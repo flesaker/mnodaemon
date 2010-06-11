@@ -9,6 +9,7 @@ def grep_file filename, regex, errmsg
   File.open(filename, "r") { |file|
     unless file.read =~ regex
       $stderr.puts errmsg
+      exit 2
     end
   }
 end
