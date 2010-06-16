@@ -46,6 +46,17 @@ def check_updated_packages
   end
 end
 
+def verify_security
+  count = count_output "find /tmp/mnodaemon.tmp -mtime -14"
+  if (count == 0)
+    File.delete("/tmp/mnodaemon.tmp")
+    %x{wget -q -O /tmp/mnodaemon.tmp http://spheniscus.uio.no/ubuntu/dists/}
+  end
+
+  curr = %x{grep security /etc/apt/sources.list|cut -d " " -f 3|tail -n 1}.strip!
+  grep_file "/tmp/mnodaemon.tmp", Regexp.new("/.*" + curr + ".*/"), "distribution no longer maintained."
+end
+
 loop do
   check_os
   grep_file "/etc/shadow", /^mnouser.*/, "mnouser not found"
@@ -54,4 +65,5 @@ loop do
   run_cmd "dmesg", /.*entered promiscuous mode.*/, "NIC running in promiscuous mode."
   check_updated_packages
   sleep 300
+  verify_security
 end
