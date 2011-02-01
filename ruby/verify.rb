@@ -48,11 +48,11 @@ end
 
 def verify_security
   count = count_output "find /tmp/mnodaemon.tmp -mtime -14"
-  if (count == 0)
-    File.delete("/tmp/mnodaemon.tmp")
+  puts count
+  if count == 0
+    if File.exists?("/tmp/(mnodaemon.tmp");  File.delete("/tmp/mnodaemon.tmp"); end
     %x{wget -q -O /tmp/mnodaemon.tmp http://spheniscus.uio.no/ubuntu/dists/}
   end
-
   curr = %x{grep security /etc/apt/sources.list|cut -d " " -f 3|tail -n 1}.strip!
   grep_file "/tmp/mnodaemon.tmp", Regexp.new("/.*" + curr + ".*/"), "distribution no longer maintained."
 end
