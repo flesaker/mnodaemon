@@ -1,3 +1,4 @@
+#v0.1
 def check_os
   unless File.file?("/etc/debian_version")
     $stderr.puts "Incorrect OS."
@@ -64,6 +65,6 @@ loop do
   run_cmd "ps ax", /.*dhcpd.*/, "DHCP Daemon running."
   run_cmd "dmesg", /.*entered promiscuous mode.*/, "NIC running in promiscuous mode."
   check_updated_packages
-  sleep 300
   verify_security
+  sleep 300
 end
