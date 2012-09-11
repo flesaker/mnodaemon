@@ -48,9 +48,13 @@ def verify_security
 end
 
 def check_verify_opensuse
+  version = %x[grep VERSION /etc/SuSE-release | egrep -o "[0-9]+\.[0-9]+"]
   if (count_output("find /tmp/mnodaemon.tmp -mtime -14 2> /dev/null") == 0)
-    run_cmd "curl --write-out %{http_code} --silent --output /dev/null http://download.opensuse.org/update/$(grep VERSION /etc/SuSE-release | egrep -o '[0-9]+\.[0-9]+')/", /^200.$/, "distro no longer supported"
-    %x[touch /tmp/mnodaemon.tmp]
+    run_cmd "curl --write-out %{http_code} --silent --output /dev/null http://download.opensuse.org/update/#{version}", /^200.$/, "distro no longer supported"
+    if File.exists?("/tmp/(mnodaemon.tmp"); File.delete("/tmp/mnodaemon.tmp") end
+    File.open('/tmp/mnodaemon.tmp', 'w') {|f| f.write(version) }
+  else
+    grep_file "/tmp/mnodaemon.tmp", /#{version}/, "wrong distro in /tmp/mnodaemon.tmp"
   end
 
   if (count_output("zypper --no-refresh lu | tail -n +4") > 15)
