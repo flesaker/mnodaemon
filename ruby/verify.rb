@@ -47,6 +47,25 @@ def verify_security
   grep_file "/tmp/mnodaemon.tmp", Regexp.new("/.*" + curr + ".*/"), "distribution no longer maintained."
 end
 
+def check_verify_opensuse
+  if (count_output("find /tmp/mnodaemon.tmp -mtime -14 2> /dev/null") == 0)
+    run_cmd "curl --write-out %{http_code} --silent --output /dev/null http://download.opensuse.org/update/$(grep VERSION /etc/SuSE-release | egrep -o '[0-9]+\.[0-9]+')/", /^200.$/, "distro no longer supported"
+    %x[touch /tmp/mnodaemon.tmp]
+  end
+
+  if (count_output("zypper --no-refresh lu | tail -n +4") > 15)
+    $stderr.puts "More than 15 packages needs to be updated."
+    exit 2
+  end
+
+  %x[zypper --no-refresh lr | egrep "Yes\s+.\s+(Yes|No)" | cut -d " " -f 4].split(/\s+/).each do |repo|
+    if count_output("find /var/cache/zypp/raw/#{repo} -mtime -14 | egrep \"content$|repomd.xml$\"") == 0
+      $stderr.puts "Repo #{repo} needs to be updated"
+      exit 2
+    end
+  end
+end
+
 def check_os
   if File.file?("/etc/debian_version")
     return lambda do
@@ -55,22 +74,7 @@ def check_os
     end
   elsif File.file?("/etc/SuSE-release")
     return lambda do
-      if (count_output("find /tmp/mnodaemon.tmp -mtime -14 2> /dev/null") == 0)
-        run_cmd "curl --write-out %{http_code} --silent --output /dev/null http://download.opensuse.org/update/$(grep VERSION /etc/SuSE-release | egrep -o '[0-9]+\.[0-9]+')/", /^200.$/, "distro no longer supported"
-        %x[touch /tmp/mnodaemon.tmp]
-      end
-
-      if (count_output("zypper --no-refresh lu | tail -n +4") > 15)
-        $stderr.puts "More than 15 packages needs to be updated."
-        exit 2
-      end
-
-      %x[zypper --no-refresh lr | egrep "Yes\s+.\s+(Yes|No)" | cut -d " " -f 4].split(/\s+/).each do |repo|
-        if count_output("find /var/cache/zypp/raw/#{repo} -mtime -14 | egrep \"content$|repomd.xml$\"") == 0
-          $stderr.puts "Repo #{repo} needs to be updated"
-          exit 2
-        end
-      end
+      check_verify_opensuse
     end
   else
     $stderr.puts "Incorrect OS."
